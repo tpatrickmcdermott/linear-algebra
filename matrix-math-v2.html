@@ -70,7 +70,6 @@
   </head>
   <body>
     <h1>Matrix Math (v2)</h1>
-    <p>NOTE: this algo currently only works when row1, col1 is already 1 (let's fix this deficiency!)</p>
       <div id="entry">
         <div id="matrixInput">
           <p>Input matrix</p>
@@ -82,38 +81,63 @@
         <div id="matrixOutput">
           <p>Output</p>
         </div>
+
+        <div style="display: none;">
+          <button class="convert" onclick="btn_getFromMatrix()">
+            Get Array from Matrix <br>
+            <code>getArrVals(input, cols)</code>
+          </button>
+          <input id="flat-array-field" type="text" value="null" size="30">
+        </div>
       </div>
       <hr>
-      <div id="toolbar">
-        <button onclick="getArrVals()">
-          Get Array from Matrix <br>
-          <code>getArrVals(input, cols)</code>
-        </button>
-        <input type="text" value="null">
-      </div>
+
       <div id="testArrays">
         <ul>
           <li>Flat Matrix
-            <input type="text" size="30"
-              value="[1, 2, 1, 2, 3, 8, 1, 12, 0, 4, 1, 2]">
+            <input id="array-entry1" type="text" size="30"
+              value="1, 2, 1, 2, 3, 8, 1, 12, 0, 4, 1, 2">
             Solution <input type="text" size="8"
               value="[2, 1, -2]">
+              <button onclick="btn_useAsInput('array-entry1')">Use as input matrix</button>
+          </li>
+
+          <li>Flat Matrix <input id="array-entry2" type="text" size="30"
+              value="3, -2, 8, 9, -2, 2, 1, 3, 1, 2, -3, 8">
+            Solution <input type="text" size="8"
+              value="[3,4,1]">
+            <button onclick="btn_useAsInput('array-entry2')">Use as input matrix</button>
           </li>
 
           <li>Flat Matrix <input type="text" size="30"
-              value="[3, -2, 8, 9, -2, 2, 1, 3, 1, 2, -3, 8]">
-            Solution <input type="text" size="8"
-              value="[3,4,1]"></li>
+              value="2,1,3,-2,1,-1,-1,-3,3,-2,3,-12">
+            Solution
+            <input type="text" size="8"
+              value="-1, 3, -1">
+          </li>
+
+          <!-- 1,2,-1,-4,-2,4,-1,6,2,2,3,1  [ -3, 1/2, 2 ] -->
 
           <li>Flat Matrix <input type="text" size="30"
               value="">
             Solution <input type="text" size="8"
-              value=""></li>
+              value="">
+          </li>
+
+          <li>Flat Matrix <input type="text" size="30"
+              value="">
+            Solution <input type="text" size="8"
+              value="">
+          </li>
         </ul>
       </div>
 
   <div id="explain">
-    <h2>{Reduced} Row Elimination Form: (ref function)</h2>
+    <h2>Reduced Row Elimination Form: (rref function)</h2>
+    <p>Bugs:</p>
+    <ul>
+      <li>Need to fix divide by zero issue (array of all 1s fails)</li>
+    </ul>
 
     <p>Method:  Work Left-to-Right and Top-to-Bottom  (turn column1 into [1,0,0])</p>
     <ol>
@@ -181,6 +205,17 @@
       let outputArr = rref(arr);
       // console.log(outputArr);
       fillMatrix(outputArr, 'matrixOutput');
+    }
+
+    function btn_useAsInput(source) {
+      //console.log(this);
+      let arr = document.getElementById(source).value.split(',');
+      fillMatrix1D(arr);
+    }
+
+    function btn_getFromMatrix() {
+      let arr = getArrVals();
+      document.getElementById("flat-array-field").value = arr;
     }
   </script>
 
@@ -300,20 +335,30 @@
       for (var i = 0; i<input.length; i++) {
         arr.push(Number(input[i].value));
       }
-      console.log(arr);  // before splicing it up
+      // console.log(arr);  // before splicing it up
       let arr2 = [arr.splice(0,cols), arr.splice(0,cols), arr];
       return arr2;
     }
 
+    function fillMatrix1D(arr, targ) {
+      targ =  document.getElementById(targ) ||
+              document.getElementById('matrixInput');
+      let inputs = targ.getElementsByTagName('input');
+      let len = arr.length;
+      while (len-- > 0) {
+        inputs[len].value = arr[len];
+      }
+    }
+
     /**
-     *
+     * @param {2d array} input
     */
     function fillMatrix(arr, targ) {
     //  Assumes a 2d array
     //  Sample: fillMatrix( [1,2,1], "matrixInput" )
       targ =  document.getElementById(targ) ||
               document.getElementById('matrixInput');
-      console.log(targ);
+      // console.log(targ);
       let inputs = targ.getElementsByTagName('input');
       let a = arr[0].concat(arr[1], arr[2]);
       let len = a.length;
@@ -341,7 +386,7 @@
       //  default is all 1s, replace with pre-defined array
       //  BUG:  check why all 1s fails (it's because pivot2 is zero:
       //        can't have that!). In practical terms: end up with div by zero
-      fillMatrix(a2, "matrixInput");
+    fillMatrix(a2, "matrixInput");
     mkMatrix(3,4, "matrixOutput");
   </script>
 
