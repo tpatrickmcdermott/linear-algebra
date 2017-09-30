@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Matrix Echelon Form (v2: matrix-math.html)</title>
+    <!-- <script src="/resources/js/libs/math-js/math.min.js" charset="utf-8"></script> -->
+    <script type="text/javascript" name="helper-functions">
+      /*jshint esversion: 6 */
+      // jshint expr: true
+      //  -------------------|   DOM stuff   |----------------------
+      //  DOM utility functions. No dependencies or side effects in these functions
+      var create = function (ele, attribsObj) {
+        if (typeof ele !== 'string') {
+          alert('the first argument of the create function must be a string');
+        }
+        var e = document.createElement(ele);
+        if (attribsObj) {
+          for (var key in attribsObj) {
+            switch (key) {
+              case 'content':
+                e.textContent = attribsObj[key];
+                break;
+              case 'inner':
+                // yes innerHTML is a bit dangerous and vulnerable to XSS attacks...
+                // so think about where you're using/exposing it to public inputs
+                e.innerHTML = attribsObj[key];
+                break;
+              default:
+                e.setAttribute(key, attribsObj[key]);
+            }
+          }
+        }
+        return e;
+      };
+      // NOTE: OK, by now, I'm tired of document.get... so,
+      var pm$ = {
+        d: function(e) {return document.getElementById(e);},
+        q: function(e) {return document.querySelector(e);},
+        c: function(e) {return document.getElementsByClassName(e);},
+        t: function(e) {return document.getElementsByTagName(e);},
+        qa: function(e) {return document.querySelectorAll(e);},
+      };
+    </script>
+
+    <style media="screen">
+      #toolbar {margin-top: 1em}
+      #toolbar button {
+        height: 3em;
+        font-size: .8em;
+        padding: 0 1em;
+      }
+      #entry {
+        background-color: lightgray;
+        position: relative;
+        float: left;
+        width: 100%;
+      }
+      #entry div {
+        /*width: 40%;*/
+        padding: .5em;
+        position: relative;
+        margin: .5em;
+        float: left;
+        background-color: #efefef;
+      }
+      ol li {
+        margin-bottom: .5em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Matrix Math (v2)</h1>
+    <p>NOTE: this algo currently only works when row1, col1 is already 1 (let's fix this deficiency!)</p>
+      <div id="entry">
+        <div id="matrixInput">
+          <p>Input matrix</p>
+        </div>
+        <div>
+          <button class="convert"
+          onclick="btn_convert()">Convert</button>
+        </div>
+        <div id="matrixOutput">
+          <p>Output</p>
+        </div>
+      </div>
+      <hr>
+      <div id="toolbar">
+        <button onclick="getArrVals()">
+          Get Array from Matrix <br>
+          <code>getArrVals(input, cols)</code>
+        </button>
+        <input type="text" value="null">
+      </div>
+      <div id="testArrays">
+        <ul>
+          <li>Flat Matrix
+            <input type="text" size="30"
+              value="[1, 2, 1, 2, 3, 8, 1, 12, 0, 4, 1, 2]">
+            Solution <input type="text" size="8"
+              value="[2, 1, -2]">
+          </li>
+
+          <li>Flat Matrix <input type="text" size="30"
+              value="[3, -2, 8, 9, -2, 2, 1, 3, 1, 2, -3, 8]">
+            Solution <input type="text" size="8"
+              value="[3,4,1]"></li>
+
+          <li>Flat Matrix <input type="text" size="30"
+              value="">
+            Solution <input type="text" size="8"
+              value=""></li>
+        </ul>
+      </div>
+
+  <div id="explain">
+    <h2>{Reduced} Row Elimination Form: (ref function)</h2>
+
+    <p>Method:  Work Left-to-Right and Top-to-Bottom  (turn column1 into [1,0,0])</p>
+    <ol>
+      <li>Divide row1  by c1r1 (ie 3 :: [1, -2/3, 8/3, 3]).  Turns our first pivot into 1 <br>
+        <code>x1 = a2[0].map(e =&gt; e/a2[0][0])</code>
+    </li>
+      <li>Turn c1r2 into zero: <br>
+        row2 minus (c1r2)*(row1)  :::
+      </li>
+
+    </ol>
+
+
+  </div>
+
+  <script type="text/javascript">
+    function scaleArr(arr, c) {
+      return arr.map(e => e*c);
+    }
+    function subtract(arr1, arr2) {
+      return arr1.map( (e,i) => e-arr2[i] );
+    }
+    function rref(arr) {
+      // *  takes 2 dimension (m x n) array as argument
+      /*  a. set upper left pivot (row1) to 1 (TODO: make dedicated function)
+          b. zero row2 1st entry
+          c. set row2 pivot to 1
+          d. zero row3 1st entry
+          e. zero row3 2nd entry
+          f. set row3 pivot to 1
+          -- thus far --
+          matrix is in upper triangle form, now back substitute
+            [1,--,--, --]
+            [0,1,--,--]
+            [0,0,1,z]
+          g. "z" is just the last entry of row 3
+          h. plug "z" into row 2 to get "y"; update final row2
+          i. plug z and y into row 1 to get x
+          j. update final row 1 entries
+          -- final --
+            [1,0,0,x]
+            [0,1,0,y]
+            [0,0,1,z]
+      */
+      var x1 = arr[0].map( (e, i, a) => e/a[0] );
+      var x2 = subtract(arr[1], scaleArr(x1, arr[1][0]) );
+      var x2a = x2.map( (e, i, a) => e/a[1] );
+      var x3 = subtract(arr[2], scaleArr(x1, arr[2][0]) );
+      var x3a = subtract(x3, scaleArr(x2a, x3[1]));
+      var x3b = x3a.map( (e, i, a) => e/a[2] );
+      // var x2b = x2a.slice();
+      // x2b[3] = x2b[3]-x2b[2];
+      // x2b[2] = 0;
+      var z = x3b[3];
+      var x2b = [0,1,0,x2a[3]-x2a[2]*z];
+      var y = x2b[3];
+      var x1a = [1,0,0,x1[3]-x1[2]*z-x1[1]*y];
+      // console.table([x1, x2, x2a, x3, x3a, x3b]);
+      console.table([x1a, x2b, x3b]);
+      return [x1a, x2b, x3b];
+    }
+
+    function btn_convert() {
+      let arr = getArrVals();
+      let outputArr = rref(arr);
+      // console.log(outputArr);
+      fillMatrix(outputArr, 'matrixOutput');
+    }
+  </script>
+
+  <script type="text/javascript" name="row-operations">
+
+    // var arr = [[1,2,1,2], [3,8,1,12], [0,4,1,2]];
+    function gcd(a, b) {
+      a = Math.abs(a);
+      b = Math.abs(b);
+      while(b) {
+        var z = b;
+        b = a % b;
+        a = z;
+      }
+      return a;
+    }
+    function lcm(a, b) {
+      // requires gcd()
+      return a*b / gcd(a,b);
+    }
+
+    /**
+    *
+    */
+    function ref(arr) {
+      //  Row Echelon Form (ref); aka upper diagonal, such that the lower diagonal values are all zero
+      //  Pre-flight 1: requires a 3x4 matrix
+      if (arr.length < 3 || arr[0].length<4 ||
+        arr[1].length<4 || arr[2].length<4) {
+        return "Requires a 3x4  matrix";
+      }
+
+      //  Row 1 minus Row 2, using pivot1
+      var pivot1 = arr[0][0];
+      var mul1 = lcm(pivot1, arr[1][0]);
+      var a1 = arr[0].map( (e, i) => e*mul1 - arr[1][i]);
+      arr[1] = a1;
+
+      //  Row 1 minus Row 3, using pivot1
+      var mul2 = lcm(pivot1, arr[2][0]);
+      var a2 = arr[0].map( (e, i) => e*mul2 - arr[2][i]);
+      arr[2] = a2;
+
+      //  Row 2 minus Row 3, using pivot2
+      var pivot2 = arr[1][1];
+      //  if, as in this case, the pivot > 1, we need to divide
+      //  the multiplier by the pivot (absolute value).  So, in reality we need to always add that step
+      var mul3 = lcm(pivot2, arr[2][1]) / Math.abs(pivot2);
+      var a3 = arr[1].map( (e, i) => e*mul3 - arr[2][i]);
+      arr[2] = a3;
+
+      //  get the new vector x,y,z values by plugging in the numbers
+      var z = arr[2][3] / arr[2][2];
+      var y = (arr[1][3] - arr[1][2]*z) / arr[1][1];
+      var x = (arr[0][3] - arr[0][2]*z - arr[0][1]*y) / arr[0][0];
+      var xyz = [x,y,z];
+
+      // debug::::::::::
+        var obj = {
+          xyz: xyz,
+          pivot1: pivot1,
+          pivot2: pivot2,
+          mul1: mul1,
+          mul2: mul2,
+          mul3: mul3,
+          a1: a1,
+          a2: a2,
+          a3: a3,
+          arr: arr
+        };
+        // console.log(obj);
+        // console.table(arr);
+        OBJ = obj;
+      return {xyz: xyz, ref_Array: arr};
+    }
+    //  ref( [[1,2,1,2], [3,8,1,12], [0,4,1,2]] ) returns [2,1,-2]
+    /*  [1, 2, 1, 2],
+        [0, -2, 2, -6],
+        [0, 0, 5, -10]
+    */
+    //  TESTS
+    //  ref([ [], [], [] ])
+    //  ref( [[1,0,0,2], [0,1,0,12], [0,0,1,2]] ) => [2, 12, 2]
+
+    //  INVESTIGATE :::::::::::::::::::::::
+    //  ref( [[1,0,0,2], [3,8,1,12], [0,4,1,2]] ) ==> [NaN, Infinity, -Infinity]
+    //  ~~~~~~~~~ case 2: ~~~~~~~~~~~~~~~~~~~~~~
+    //  all One's fails; should be xyz each equal 1/3
+    //  this is special case: if x==y==z== constant, you are DONE
+    //    and each equals constant / 3
+    //  MORE Particularly! :: if row1, 2 and/or 3 are identical
+  </script>
+
+  <script name="init-functions">
+    function mkMatrix(m,n, target) {
+      let targ = pm$.d(target);
+      let count = m*n;
+      while (count-- > 0 ) {
+          // targ.appendChild( create('input', {type: 'text', size: 4, value: m*n-count}) );
+          targ.appendChild( create('input', {type: 'text', size: 4, value: 1}) );
+          if (count % n === 0) {
+            targ.appendChild(create('br'));
+          }
+      }
+    }
+
+    /**
+     * @param {nodelist} input
+     * @return {2d array}
+     */
+    function getArrVals(input, cols) {
+      // pm$.qa('input') ==> get nodeList of inputs
+      let targ = document.getElementById('matrixInput');
+      input = input || targ.querySelectorAll('input');
+      cols = cols || 4;
+      let arr = [];
+      for (var i = 0; i<input.length; i++) {
+        arr.push(Number(input[i].value));
+      }
+      console.log(arr);  // before splicing it up
+      let arr2 = [arr.splice(0,cols), arr.splice(0,cols), arr];
+      return arr2;
+    }
+
+    /**
+     *
+    */
+    function fillMatrix(arr, targ) {
+    //  Assumes a 2d array
+    //  Sample: fillMatrix( [1,2,1], "matrixInput" )
+      targ =  document.getElementById(targ) ||
+              document.getElementById('matrixInput');
+      console.log(targ);
+      let inputs = targ.getElementsByTagName('input');
+      let a = arr[0].concat(arr[1], arr[2]);
+      let len = a.length;
+
+      while (len-- > 0) {
+        inputs[len].value = a[len];
+      }
+      return inputs;
+    }
+
+    function flatten(arr) {
+      //  assumes 2d array:  3x4 matrix
+      flat = arr[0].concat(arr[1], arr[2]);
+      return flat;
+    }
+  </script>
+
+  <script type="text/javascript" name="constants">
+    var a1 = [[1,2,1,2], [3,8,1,12], [0,4,1,2]];
+    var a2 = [[3,-2,8,9], [-2,2,1,3], [1,2,-3,8]];
+  </script>
+
+  <script type="text/javascript" name="init">
+    mkMatrix(3,4, "matrixInput");
+      //  default is all 1s, replace with pre-defined array
+      //  BUG:  check why all 1s fails (it's because pivot2 is zero:
+      //        can't have that!). In practical terms: end up with div by zero
+      fillMatrix(a2, "matrixInput");
+    mkMatrix(3,4, "matrixOutput");
+  </script>
+
+
+  </body>
+</html>
